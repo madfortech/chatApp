@@ -11,7 +11,7 @@ RUN apt-get update \
         libsqlite3-dev \
         nodejs \
         npm \
-    && docker-php-ext-install pdo_mysql pdo_sqlite zip \
+    && docker-php-ext-install pdo_mysql pdo_sqlite zip pcntl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
