@@ -178,15 +178,32 @@
     | WebRTC Configuration
     |--------------------------------------------------------------------------
     */
-
     const rtcConfiguration = {
-
         iceServers: [
             {
-                urls: 'stun:stun.l.google.com:19302'
-            }
-        ]
-
+                urls: "stun:stun.relay.metered.ca:80",
+            },
+            {
+                urls: "turn:global.relay.metered.ca:80",
+                username: @json(config('services.metered.turn_username')),
+                credential: @json(config('services.metered.turn_credential')),
+            },
+            {
+                urls: "turn:global.relay.metered.ca:80?transport=tcp",
+                username: @json(config('services.metered.turn_username')),
+                credential: @json(config('services.metered.turn_credential')),
+            },
+            {
+                urls: "turn:global.relay.metered.ca:443",
+                username: @json(config('services.metered.turn_username')),
+                credential: @json(config('services.metered.turn_credential')),
+            },
+            {
+                urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                username: @json(config('services.metered.turn_username')),
+                credential: @json(config('services.metered.turn_credential')),
+            },
+        ],
     };
 
 

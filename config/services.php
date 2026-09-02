@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+
+    'metered' => [
+        'turn_username' => env('METERED_TURN_USERNAME'),
+        'turn_credential' => env('METERED_TURN_CREDENTIAL'),
+    ],
+
 ];
