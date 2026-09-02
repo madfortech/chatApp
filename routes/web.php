@@ -29,29 +29,25 @@ Route::middleware('auth')->group(function () {
         ->name('video-match.leave');
 });
 
+Route::post('/webrtc/signal', function (Request $request) {
 
-Route::middleware('auth')->group(function () {
+    $validated = $request->validate([
+        'type' => ['required', 'string'],
+        'data' => ['nullable', 'array'],
+        'receiverId' => ['required', 'integer'],
+    ]);
 
-    Route::post('/webrtc/signal', function (Request $request) {
-        $validated = $request->validate([
-            'type' => ['required', 'string'],
-            'data' => ['required', 'array'],
-            'receiverId' => ['required', 'integer'],
-        ]);
+    broadcast(new WebRTCSignal(
+        type: $validated['type'],
+        data: $validated['data'] ?? [],
+        senderId: (int) auth()->id(),
+        receiverId: (int) $validated['receiverId'],
+    ))->toOthers();
 
-        broadcast(new WebRTCSignal(
-            type: $validated['type'],
-            data: $validated['data'],
-            senderId: auth()->id(),
-            receiverId: $validated['receiverId'],
-        ))->toOthers();
-
-        return response()->json([
-            'success' => true,
-        ]);
-    });
-
-});
+    return response()->json([
+        'success' => true,
+    ]);
+})->middleware('auth');
 
 
 require __DIR__.'/auth.php';

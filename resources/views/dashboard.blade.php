@@ -870,13 +870,22 @@
 
 
             if (!response.ok) {
+                const errorText = await response.text();
 
                 console.error(
                     'Signal HTTP error:',
                     response.status
                 );
 
+                console.error(
+                    'Signal response:',
+                    errorText
+                );
+
+                return false;
             }
+
+            return true;
 
 
         } catch (error) {
