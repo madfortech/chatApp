@@ -19,7 +19,7 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader
 
 RUN npm install && npm run build
-
+RUN touch database/database.sqlite
 RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
