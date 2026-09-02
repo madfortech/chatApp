@@ -1,0 +1,46 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('video_matches', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_one_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->foreignId('user_two_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->string('status')
+                ->default('active');
+
+            $table->timestamp('started_at')
+                ->nullable();
+
+            $table->timestamp('ended_at')
+                ->nullable();
+
+            $table->index(['user_one_id', 'status']);
+            $table->index(['user_two_id', 'status']);
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('video_matches');
+    }
+};
