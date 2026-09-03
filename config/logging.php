@@ -135,6 +135,12 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'webrtc' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/webrtc.log'),
+            'level' => 'debug',
+        ],
+
     ],
 
 ];

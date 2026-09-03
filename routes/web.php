@@ -32,9 +32,8 @@ Route::middleware('auth')->group(function () {
 
 Route::post('/webrtc/signal', function (Request $request) {
 
-    Log::info('WEBRTC SIGNAL: request received', [
+    Log::channel('webrtc')->info('WEBRTC SIGNAL: request received', [
         'user_id' => auth()->id(),
-        'request' => $request->all(),
     ]);
 
     try {
@@ -45,12 +44,12 @@ Route::post('/webrtc/signal', function (Request $request) {
             'receiverId' => ['required', 'integer'],
         ]);
 
-        Log::info('WEBRTC SIGNAL: validation passed', [
+        Log::channel('webrtc')->info('WEBRTC SIGNAL: validation passed', [
             'type' => $validated['type'],
             'receiverId' => $validated['receiverId'],
         ]);
 
-        Log::info('WEBRTC SIGNAL: broadcasting', [
+        Log::channel('webrtc')->info('WEBRTC SIGNAL: broadcasting', [
             'senderId' => (int) auth()->id(),
             'receiverId' => (int) $validated['receiverId'],
         ]);
@@ -62,7 +61,9 @@ Route::post('/webrtc/signal', function (Request $request) {
             receiverId: (int) $validated['receiverId'],
         ))->toOthers();
 
-        Log::info('WEBRTC SIGNAL: broadcast successful');
+        Log::channel('webrtc')->info(
+            'WEBRTC SIGNAL: broadcast successful'
+        );
 
         return response()->json([
             'success' => true,
@@ -70,14 +71,15 @@ Route::post('/webrtc/signal', function (Request $request) {
 
     } catch (\Throwable $e) {
 
-        Log::error('WEBRTC SIGNAL: BROADCAST FAILED', [
-            'message' => $e->getMessage(),
-            'exception' => get_class($e),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'user_id' => auth()->id(),
-            'request' => $request->all(),
-        ]);
+        Log::channel('webrtc')->error(
+            'WEBRTC SIGNAL: BROADCAST FAILED',
+            [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]
+        );
 
         return response()->json([
             'success' => false,
@@ -86,5 +88,4 @@ Route::post('/webrtc/signal', function (Request $request) {
     }
 
 })->middleware('auth');
-
 require __DIR__.'/auth.php';
