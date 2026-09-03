@@ -1351,40 +1351,32 @@
 
     function connectToReverb() {
 
-        if (
-            !window.Echo ||
-            !currentUserId
-        ) {
-
-            console.error(
-                'Laravel Echo not available'
-            );
-
+        if (!currentUserId) {
+            console.error('Current user ID not available');
             return;
-
         }
 
+        if (!window.Echo) {
+            console.log('Waiting for Laravel Echo...');
+
+            setTimeout(() => {
+                connectToReverb();
+            }, 500);
+
+            return;
+        }
 
         window.Echo
-            .private(
-                `webrtc.${currentUserId}`
-            )
-            .listen(
-                '.webrtc.signal',
-                event => {
+            .private(`webrtc.${currentUserId}`)
+            .listen('.webrtc.signal', event => {
 
-                    handleSignal(
-                        event
-                    );
+                handleSignal(event);
 
-                }
-            );
-
+            });
 
         console.log(
             'Reverb WebRTC channel connected'
         );
-
     }
 
 
