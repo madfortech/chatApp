@@ -10,7 +10,7 @@ window.Echo = new Echo({
 
     wsHost: import.meta.env.VITE_REVERB_HOST,
 
-    wsPort: 80,
+    wsPort: 443,
 
     wssPort: 443,
 
