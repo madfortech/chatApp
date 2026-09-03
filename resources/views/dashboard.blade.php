@@ -56,10 +56,11 @@
                     </div>
 
 
-                    <!-- Video Controls -->
-                    <div class="flex items-center justify-center rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                    <!-- Video Controls + WebRTC Debug -->
+                    <div class="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
 
                         <div class="flex gap-3">
+
 
                             <flux:button
                                 id="cameraButton"
@@ -229,6 +230,8 @@
 
     async function startCamera() {
 
+        debugLog('CAMERA', '📷 Requesting camera + microphone');
+
         try {
 
             /*
@@ -248,6 +251,9 @@
                     cameraEnabled = true;
 
                     updateCameraButton();
+                    debugStatus('debugCamera', '🟢 LIVE');
+                    debugStatus('debugMic', '🟢 LIVE');
+                    debugLog('CAMERA', '🟢 Existing camera stream is live');
 
                     return;
                 }
@@ -294,6 +300,12 @@
              */
             cameraEnabled = true;
 
+            debugStatus('debugCamera', '🟢 LIVE');
+            debugLog('CAMERA', '🟢 Local stream started', {
+                videoTracks: localStream.getVideoTracks().length,
+                audioTracks: localStream.getAudioTracks().length
+            });
+
 
             /*
              * Placeholder hide
@@ -312,6 +324,11 @@
              */
             const audioTracks =
                 localStream.getAudioTracks();
+
+            debugStatus(
+                'debugMic',
+                audioTracks.length ? (micEnabled ? '🟢 LIVE' : '🟡 MUTED') : '🔴 NONE'
+            );
 
             audioTracks.forEach(track => {
 
@@ -393,6 +410,10 @@
 
 
         } catch (error) {
+
+            debugStatus('debugCamera', '🔴 ERROR');
+            debugStatus('debugMic', '🔴 ERROR');
+            debugError('CAMERA', error);
 
             console.error(
                 'Camera error:',
@@ -655,6 +676,12 @@
                 rtcConfiguration
             );
 
+        debugStatus('debugRtc', '🟡 NEW');
+        debugStatus('debugIce', '🟡 NEW');
+        debugLog('WEBRTC', '🟡 PeerConnection created', {
+            remoteUserId: remoteUserId
+        });
+
 
         /*
          |--------------------------------------------------------------------------
@@ -686,6 +713,12 @@
 
         peerConnection.ontrack =
             async event => {
+
+                debugStatus('debugVideo', '🟢 TRACK');
+                debugLog('VIDEO', '🟢 Remote track received', {
+                    kind: event.track?.kind,
+                    streams: event.streams?.length || 0
+                });
 
                 console.log(
                     'Remote track received'
@@ -744,6 +777,8 @@
                 event.candidate.toJSON()
             );
 
+            debugLog('ICE', '📤 Candidate gathered');
+
             clearTimeout(iceBatchTimer);
 
             iceBatchTimer = setTimeout(async () => {
@@ -756,6 +791,9 @@
                     [...outgoingIceCandidates];
 
                 outgoingIceCandidates = [];
+
+                debugStatus('debugIce', `📤 ${candidates.length} SENT`);
+                debugLog('ICE', `📤 Sending ${candidates.length} candidates`);
 
                 console.log(
                     'Sending ICE batch:',
@@ -784,6 +822,9 @@
                 const state =
                     peerConnection.connectionState;
 
+
+                debugStatus('debugRtc', state.toUpperCase());
+                debugLog('WEBRTC', `Connection state = ${state}`);
 
                 console.log(
                     'WebRTC:',
@@ -832,6 +873,8 @@
 
         if (!remoteUserId) {
 
+            debugLog('SIGNAL', `❌ ${type} not sent: no remote user`);
+
             console.warn(
                 'No remote user'
             );
@@ -839,6 +882,14 @@
             return;
 
         }
+
+        debugStatus('debugRemote', `🟢 USER ${remoteUserId}`);
+        debugStatus('debugSignal', `📤 ${type}`);
+        debugLog(
+            'SIGNAL',
+            `📤 Sending ${type} → ${remoteUserId}`,
+            data
+        );
 
 
         try {
@@ -884,6 +935,8 @@
 
 
             if (!response.ok) {
+                debugStatus('debugSignal', `🔴 HTTP ${response.status}`);
+
                 const errorText = await response.text();
 
                 console.error(
@@ -899,10 +952,13 @@
                 return false;
             }
 
+            debugLog('SIGNAL', `🟢 ${type} accepted by Laravel`);
             return true;
 
 
         } catch (error) {
+
+            debugError('SIGNAL', error);
 
             console.error(
                 'Signal error:',
@@ -966,6 +1022,7 @@
             );
 
 
+            debugLog('WEBRTC', '📤 OFFER SENT');
             console.log(
                 'Offer sent'
             );
@@ -973,6 +1030,7 @@
 
         } catch (error) {
 
+            debugError('OFFER', error);
             console.error(
                 'Offer error:',
                 error
@@ -1003,6 +1061,8 @@
 
 
         try {
+
+            debugLog('WEBRTC', '📥 OFFER RECEIVED');
 
             await peerConnection.setRemoteDescription(
                 new RTCSessionDescription(
@@ -1035,6 +1095,7 @@
             );
 
 
+            debugLog('WEBRTC', '📤 ANSWER SENT');
             console.log(
                 'Answer sent'
             );
@@ -1042,6 +1103,7 @@
 
         } catch (error) {
 
+            debugError('OFFER HANDLING', error);
             console.error(
                 'Offer handling error:',
                 error
@@ -1069,6 +1131,8 @@
 
         try {
 
+            debugLog('WEBRTC', '📥 ANSWER RECEIVED');
+
             await peerConnection.setRemoteDescription(
                 new RTCSessionDescription(
                     data.answer
@@ -1079,6 +1143,7 @@
             await processPendingIceCandidates();
 
 
+            debugLog('WEBRTC', '🟢 ANSWER APPLIED');
             console.log(
                 'Answer received'
             );
@@ -1086,6 +1151,7 @@
 
         } catch (error) {
 
+            debugError('ANSWER', error);
             console.error(
                 'Answer error:',
                 error
@@ -1111,9 +1177,12 @@
             !data.candidate
         ) {
 
+            debugLog('ICE', '⚠️ Empty candidate ignored');
             return;
 
         }
+
+        debugLog('ICE', '📥 Candidate received');
 
 
         /*
@@ -1127,6 +1196,11 @@
 
             pendingIceCandidates.push(
                 data.candidate
+            );
+
+            debugLog(
+                'ICE',
+                `🟡 Candidate queued (${pendingIceCandidates.length})`
             );
 
             return;
@@ -1221,6 +1295,12 @@
 
     async function handleSignal(event) {
 
+        debugLog(
+            'REVERB',
+            `🔥 EVENT RECEIVED: ${event?.type || 'unknown'}`,
+            event
+        );
+
         console.log(
             'WEBRTC SIGNAL:',
             event
@@ -1260,6 +1340,11 @@
             remoteUserId =
                 senderId;
 
+            debugStatus(
+                'debugRemote',
+                `🟢 USER ${remoteUserId}`
+            );
+
         }
 
 
@@ -1270,6 +1355,9 @@
          */
 
         if (type === 'ready') {
+
+            debugStatus('debugSignal', '📥 READY');
+            debugLog('WEBRTC', `📥 READY received from user ${senderId}`);
 
             /*
              * Lower ID caller banega.
@@ -1282,7 +1370,19 @@
                 Number(senderId)
             ) {
 
+                debugLog(
+                    'WEBRTC',
+                    `🟢 Caller: ${currentUserId} < ${senderId}; creating OFFER`
+                );
+
                 await createOffer();
+
+            } else {
+
+                debugLog(
+                    'WEBRTC',
+                    `🟡 Receiver: ${currentUserId} > ${senderId}; waiting for OFFER`
+                );
 
             }
 
@@ -1399,13 +1499,54 @@
             return;
         }
 
+        const channelName =
+            `webrtc.${currentUserId}`;
+
+        debugLog(
+            'REVERB',
+            `🔌 Subscribing to private channel ${channelName}`
+        );
+
         window.Echo
-            .private(`webrtc.${currentUserId}`)
+            .private(channelName)
             .listen('.webrtc.signal', event => {
 
-                handleSignal(event);
+                debugStatus('debugReverb', '🟢 EVENT');
+                debugLog('REVERB', '🔥 Event received from Reverb', event);
+
+                handleSignal(event).catch(error => {
+                    debugError('SIGNAL HANDLER', error);
+                });
 
             });
+
+        debugStatus('debugReverb', '🟡 LISTENER');
+        debugLog('REVERB', '🟡 Private channel listener registered');
+
+        try {
+            const pusher = window.Echo.connector?.pusher;
+
+            if (pusher) {
+                pusher.connection.bind('connected', () => {
+                    debugStatus('debugReverb', '🟢 CONNECTED');
+                    debugLog('REVERB', '🟢 Pusher/Reverb connected');
+                });
+
+                pusher.connection.bind('state_change', states => {
+                    debugLog(
+                        'REVERB',
+                        `state ${states.previous} → ${states.current}`
+                    );
+                });
+
+                pusher.connection.bind('error', error => {
+                    debugStatus('debugReverb', '🔴 ERROR');
+                    debugError('REVERB', error);
+                });
+            }
+        } catch (error) {
+            debugError('REVERB DEBUG', error);
+        }
 
         console.log(
             'Reverb WebRTC channel connected'
@@ -1423,6 +1564,7 @@
 
         try {
 
+            debugLog('MATCH', '🔎 Searching for next user...');
             console.log(
                 'Searching for next user...'
             );
@@ -1511,6 +1653,9 @@
         remoteUserId =
             Number(userId);
 
+
+        debugStatus('debugRemote', `🟢 USER ${remoteUserId}`);
+        debugLog('MATCH', `🟢 Matched with user ${remoteUserId}`);
 
         console.log(
             'Matched user:',
@@ -1903,6 +2048,51 @@
 
         }
     );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REMOTE VIDEO DEBUG
+    |--------------------------------------------------------------------------
+    */
+
+    localVideo?.addEventListener('loadedmetadata', () => {
+        debugLog(
+            'VIDEO',
+            `🟢 Local metadata ${localVideo.videoWidth}x${localVideo.videoHeight}`
+        );
+    });
+
+    remoteVideo?.addEventListener('loadedmetadata', () => {
+        debugStatus(
+            'debugVideo',
+            `🟢 ${remoteVideo.videoWidth}x${remoteVideo.videoHeight}`
+        );
+
+        debugLog(
+            'VIDEO',
+            `🟢 Remote metadata ${remoteVideo.videoWidth}x${remoteVideo.videoHeight}`
+        );
+    });
+
+    remoteVideo?.addEventListener('playing', () => {
+        debugStatus('debugVideo', '🟢 PLAYING');
+
+        debugLog(
+            'VIDEO',
+            '🟢 REMOTE VIDEO PLAYING — saamne wale ka face/video aa raha hai'
+        );
+    });
+
+    remoteVideo?.addEventListener('waiting', () => {
+        debugStatus('debugVideo', '🟡 WAITING');
+        debugLog('VIDEO', '🟡 Remote video waiting for frames');
+    });
+
+    remoteVideo?.addEventListener('error', () => {
+        debugStatus('debugVideo', '🔴 ERROR');
+        debugLog('VIDEO', '❌ Remote video element error');
+    });
 
 
     /*
