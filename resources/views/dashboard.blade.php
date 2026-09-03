@@ -81,6 +81,24 @@
 
                         </div>
 
+                        <div class="rounded-xl bg-zinc-950 p-3 text-xs text-zinc-200">
+                            <div class="mb-2 flex items-center justify-between">
+                                <strong>WebRTC Debug</strong>
+                                <button id="clearWebrtcDebug" type="button" class="text-zinc-400 hover:text-white">Clear</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-x-3 gap-y-1">
+                                <div>Camera: <b id="debugCamera">WAIT</b></div>
+                                <div>Mic: <b id="debugMic">WAIT</b></div>
+                                <div>Remote: <b id="debugRemote">WAIT</b></div>
+                                <div>Reverb: <b id="debugReverb">WAIT</b></div>
+                                <div>Signal: <b id="debugSignal">WAIT</b></div>
+                                <div>WebRTC: <b id="debugRtc">WAIT</b></div>
+                                <div>ICE: <b id="debugIce">WAIT</b></div>
+                                <div>Video: <b id="debugVideo">WAIT</b></div>
+                            </div>
+                            <div id="webrtcDebugLog" class="mt-2 h-28 overflow-auto rounded bg-zinc-900 p-2 font-mono text-[10px] leading-4"></div>
+                        </div>
+
                     </div>
 
                 </div>
@@ -149,6 +167,46 @@
     */
 
     const currentUserId = {{ auth()->id() }};
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DEBUG HELPERS
+    |--------------------------------------------------------------------------
+    */
+
+    const debugLogElement = document.getElementById('webrtcDebugLog');
+
+    function debugLog(label, message, data = null) {
+        const time = new Date().toLocaleTimeString();
+        const line = `[${time}] ${label}: ${message}`;
+
+        console.log(line, data ?? '');
+
+        if (debugLogElement) {
+            const row = document.createElement('div');
+            row.textContent = data ? `${line} ${JSON.stringify(data)}` : line;
+            debugLogElement.appendChild(row);
+            debugLogElement.scrollTop = debugLogElement.scrollHeight;
+        }
+    }
+
+    function debugStatus(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    }
+
+    function debugError(label, error) {
+        debugLog(label, `❌ ${error?.message || String(error)}`);
+        console.error(label, error);
+    }
+
+    document.getElementById('clearWebrtcDebug')?.addEventListener('click', () => {
+        if (debugLogElement) debugLogElement.innerHTML = '';
+        debugLog('DEBUG', 'Log cleared');
+    });
+
+    debugLog('SYSTEM', `🟢 Script loaded. User ID: ${currentUserId}`);
 
 
     /*
@@ -231,6 +289,15 @@
     async function startCamera() {
 
         debugLog('CAMERA', '📷 Requesting camera + microphone');
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+            const error = new Error('Camera API unavailable. HTTPS required.');
+            debugStatus('debugCamera', '🔴 UNSUPPORTED');
+            debugStatus('debugMic', '🔴 UNSUPPORTED');
+            debugError('CAMERA', error);
+            alert('Camera ke liye HTTPS/secure connection required hai.');
+            return false;
+        }
 
         try {
 
@@ -408,6 +475,9 @@
                 'Camera ON'
             );
 
+            debugLog('CAMERA', '🟢 Camera ON successfully');
+            return true;
+
 
         } catch (error) {
 
@@ -427,6 +497,8 @@
             alert(
                 'Camera aur microphone permission allow karein.'
             );
+
+            return false;
         }
     }
 
@@ -854,6 +926,25 @@
                 }
 
             };
+
+        peerConnection.oniceconnectionstatechange = () => {
+            const state = peerConnection.iceConnectionState;
+
+            debugStatus(
+                'debugIce',
+                (state === 'connected' || state === 'completed')
+                    ? `🟢 ${state}`
+                    : state === 'failed'
+                        ? '🔴 failed'
+                        : state
+            );
+
+            debugLog('ICE', `ICE connection state: ${state}`);
+        };
+
+        peerConnection.onicegatheringstatechange = () => {
+            debugLog('ICE', `ICE gathering state: ${peerConnection.iceGatheringState}`);
+        };
 
 
         return peerConnection;
