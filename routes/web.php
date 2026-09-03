@@ -32,7 +32,7 @@ Route::middleware('auth')->group(function () {
 
 Route::post('/webrtc/signal', function (Request $request) {
 
-    Log::channel('webrtc')->info('WEBRTC SIGNAL: request received', [
+    Log::info('WEBRTC SIGNAL: request received', [
         'user_id' => auth()->id(),
     ]);
 
@@ -44,12 +44,12 @@ Route::post('/webrtc/signal', function (Request $request) {
             'receiverId' => ['required', 'integer'],
         ]);
 
-        Log::channel('webrtc')->info('WEBRTC SIGNAL: validation passed', [
+        Log::info('WEBRTC SIGNAL: validation passed', [
             'type' => $validated['type'],
             'receiverId' => $validated['receiverId'],
         ]);
 
-        Log::channel('webrtc')->info('WEBRTC SIGNAL: broadcasting', [
+        Log::info('WEBRTC SIGNAL: broadcasting', [
             'senderId' => (int) auth()->id(),
             'receiverId' => (int) $validated['receiverId'],
         ]);
@@ -61,9 +61,7 @@ Route::post('/webrtc/signal', function (Request $request) {
             receiverId: (int) $validated['receiverId'],
         ))->toOthers();
 
-        Log::channel('webrtc')->info(
-            'WEBRTC SIGNAL: broadcast successful'
-        );
+        Log::info('WEBRTC SIGNAL: broadcast successful');
 
         return response()->json([
             'success' => true,
@@ -71,15 +69,12 @@ Route::post('/webrtc/signal', function (Request $request) {
 
     } catch (\Throwable $e) {
 
-        Log::channel('webrtc')->error(
-            'WEBRTC SIGNAL: BROADCAST FAILED',
-            [
-                'message' => $e->getMessage(),
-                'exception' => get_class($e),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]
-        );
+        Log::error('WEBRTC SIGNAL: BROADCAST FAILED', [
+            'message' => $e->getMessage(),
+            'exception' => get_class($e),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ]);
 
         return response()->json([
             'success' => false,
