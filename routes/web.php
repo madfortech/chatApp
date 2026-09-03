@@ -34,7 +34,7 @@ Route::middleware('auth')->group(function () {
 
 Route::post('/webrtc/signal', function (Request $request) {
 
-    Log::info('WEBRTC SIGNAL: request received', [
+    Log::channel('webrtc')->info('WEBRTC SIGNAL: request received', [
         'user_id' => auth()->id(),
     ]);
 
@@ -46,12 +46,12 @@ Route::post('/webrtc/signal', function (Request $request) {
             'receiverId' => ['required', 'integer'],
         ]);
 
-        Log::info('WEBRTC SIGNAL: validation passed', [
+        Log::channel('webrtc')->info('WEBRTC SIGNAL: validation passed', [
             'type' => $validated['type'],
             'receiverId' => $validated['receiverId'],
         ]);
 
-        Log::info('WEBRTC SIGNAL: broadcasting', [
+        Log::channel('webrtc')->info('WEBRTC SIGNAL: broadcasting', [
             'senderId' => (int) auth()->id(),
             'receiverId' => (int) $validated['receiverId'],
         ]);
@@ -63,7 +63,7 @@ Route::post('/webrtc/signal', function (Request $request) {
             receiverId: (int) $validated['receiverId'],
         ))->toOthers();
 
-        Log::info('WEBRTC SIGNAL: broadcast successful');
+        Log::channel('webrtc')->info('WEBRTC SIGNAL: broadcast successful');
 
         return response()->json([
             'success' => true,
@@ -73,26 +73,31 @@ Route::post('/webrtc/signal', function (Request $request) {
 
         $previous = $e->getPrevious();
 
-        Log::error('WEBRTC SIGNAL: BROADCAST FAILED', [
-            'message' => $e->getMessage(),
-            'exception' => get_class($e),
-            'previous_exception' => $previous
-                ? get_class($previous)
-                : null,
-            'previous_message' => $previous
-                ? $previous->getMessage()
-                : null,
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString(),
-        ]);
+        Log::channel('webrtc')->error(
+            'WEBRTC SIGNAL: BROADCAST FAILED',
+            [
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+
+                'previous_exception' => $previous
+                    ? get_class($previous)
+                    : null,
+
+                'previous_message' => $previous
+                    ? $previous->getMessage()
+                    : null,
+
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]
+        );
 
         return response()->json([
             'success' => false,
             'error' => true,
 
             'message' => $e->getMessage(),
-
             'exception' => get_class($e),
 
             'previous_exception' => $previous
@@ -104,7 +109,6 @@ Route::post('/webrtc/signal', function (Request $request) {
                 : null,
 
             'file' => $e->getFile(),
-
             'line' => $e->getLine(),
 
         ], 500);
