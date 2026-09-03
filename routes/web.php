@@ -116,4 +116,23 @@ Route::post('/webrtc/signal', function (Request $request) {
 
 })->middleware('auth');
 
+
+Route::get('/dashboard/webrtc-log', function () {
+
+    $path = storage_path('logs/webrtc.log');
+
+    if (!file_exists($path)) {
+        abort(404, 'WebRTC log file not found.');
+    }
+
+    return response()->download(
+        $path,
+        'webrtc.log',
+        [
+            'Content-Type' => 'text/plain',
+        ]
+    );
+
+})->middleware(['auth', 'verified']);
+
 require __DIR__.'/auth.php';
