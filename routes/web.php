@@ -71,20 +71,42 @@ Route::post('/webrtc/signal', function (Request $request) {
 
     } catch (\Throwable $e) {
 
+        $previous = $e->getPrevious();
+
         Log::error('WEBRTC SIGNAL: BROADCAST FAILED', [
             'message' => $e->getMessage(),
             'exception' => get_class($e),
+            'previous_exception' => $previous
+                ? get_class($previous)
+                : null,
+            'previous_message' => $previous
+                ? $previous->getMessage()
+                : null,
             'file' => $e->getFile(),
             'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
         ]);
 
         return response()->json([
             'success' => false,
             'error' => true,
+
             'message' => $e->getMessage(),
+
             'exception' => get_class($e),
+
+            'previous_exception' => $previous
+                ? get_class($previous)
+                : null,
+
+            'previous_message' => $previous
+                ? $previous->getMessage()
+                : null,
+
             'file' => $e->getFile(),
+
             'line' => $e->getLine(),
+
         ], 500);
     }
 
