@@ -1,5 +1,4 @@
 import Echo from 'laravel-echo';
-
 import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
@@ -11,13 +10,13 @@ window.Echo = new Echo({
 
     wsHost: import.meta.env.VITE_REVERB_HOST,
 
-    wsPort: Number(import.meta.env.VITE_REVERB_PORT ?? 80),
+    wsPort: 80,
 
-    wssPort: Number(import.meta.env.VITE_REVERB_PORT ?? 443),
+    wssPort: 443,
 
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+    forceTLS: true,
 
-    enabledTransports: ['ws', 'wss'],
+    enabledTransports: ['wss'],
 });
 
 console.log('Laravel Echo initialized');
