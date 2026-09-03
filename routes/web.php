@@ -30,6 +30,8 @@ Route::middleware('auth')->group(function () {
         ->name('video-match.leave');
 });
 
+
+
 Route::post('/webrtc/signal', function (Request $request) {
 
     Log::info('WEBRTC SIGNAL: request received', [
@@ -78,9 +80,14 @@ Route::post('/webrtc/signal', function (Request $request) {
 
         return response()->json([
             'success' => false,
+            'error' => true,
             'message' => $e->getMessage(),
+            'exception' => get_class($e),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
         ], 500);
     }
 
 })->middleware('auth');
+
 require __DIR__.'/auth.php';
