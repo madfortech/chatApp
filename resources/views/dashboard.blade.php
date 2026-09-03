@@ -134,6 +134,8 @@
     let secondsRemaining = 60;
 
     let pendingIceCandidates = [];
+    let outgoingIceCandidates = [];
+    let iceBatchTimer = null;
 
     let isMakingOffer = false;
     let isLeavingCall = false;
@@ -732,31 +734,43 @@
          |--------------------------------------------------------------------------
          */
 
-        peerConnection.onicecandidate =
-            async event => {
+        peerConnection.onicecandidate = event => {
 
-                if (!event.candidate) {
+            if (!event.candidate) {
+                return;
+            }
 
+            outgoingIceCandidates.push(
+                event.candidate.toJSON()
+            );
+
+            clearTimeout(iceBatchTimer);
+
+            iceBatchTimer = setTimeout(async () => {
+
+                if (!outgoingIceCandidates.length) {
                     return;
-
                 }
 
+                const candidates =
+                    [...outgoingIceCandidates];
+
+                outgoingIceCandidates = [];
 
                 console.log(
-                    'Sending ICE candidate'
+                    'Sending ICE batch:',
+                    candidates.length
                 );
 
-
                 await sendSignal(
-                    'ice-candidate',
+                    'ice-batch',
                     {
-                        candidate:
-                            event.candidate.toJSON()
+                        candidates: candidates
                     }
                 );
 
-            };
-
+            }, 200);
+        };
 
         /*
          |--------------------------------------------------------------------------
@@ -1315,13 +1329,32 @@
          |--------------------------------------------------------------------------
          */
 
-        if (
-            type === 'ice-candidate'
-        ) {
+        if (type === 'ice-candidate') {
 
-            await handleIceCandidate(
-                data
-            );
+            await handleIceCandidate(data);
+
+            return;
+        }
+
+        if (type === 'ice-batch') {
+
+            if (
+                data &&
+                Array.isArray(data.candidates)
+            ) {
+
+                for (
+                    const candidate
+                    of data.candidates
+                ) {
+
+                    await handleIceCandidate({
+                        candidate: candidate
+                    });
+
+                }
+
+            }
 
             return;
         }
@@ -1824,6 +1857,12 @@
         peerConnection = null;
 
         pendingIceCandidates = [];
+
+        outgoingIceCandidates = [];
+
+        clearTimeout(iceBatchTimer);
+
+        iceBatchTimer = null;
 
 
         console.log(
