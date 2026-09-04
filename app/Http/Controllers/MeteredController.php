@@ -16,6 +16,9 @@ class MeteredController extends Controller
     {
         $user = $request->user();
 
+        /*
+         * Validate match ID.
+         */
         $request->validate([
             'match_id' => [
                 'required',
@@ -24,8 +27,9 @@ class MeteredController extends Controller
         ]);
 
         /*
-         * Find the active match and make sure
-         * the current user belongs to it.
+         * Find active match.
+         *
+         * The current user MUST belong to this match.
          */
         $match = VideoMatch::query()
             ->where('id', $request->integer('match_id'))
@@ -44,47 +48,82 @@ class MeteredController extends Controller
         }
 
         /*
-         * Metered room must exist.
+         * Every active match must have a Metered room.
          */
         if (empty($match->metered_room)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Metered room is not configured for this match.',
+                'match_id' => $match->id,
             ], 422);
         }
 
+        /*
+         * Read Metered configuration from Laravel config.
+         *
+         * config/services.php:
+         *
+         * 'metered' => [
+         *     'app_name' => env('METERED_APP_NAME'),
+         *     'secret_key' => env('METERED_SECRET_KEY'),
+         * ],
+         */
         $appName = config('services.metered.app_name');
         $secretKey = config('services.metered.secret_key');
 
+        /*
+         * IMPORTANT:
+         *
+         * Do NOT return or log the actual secret key.
+         *
+         * This diagnostic only tells us whether
+         * Laravel can see each value.
+         */
         if (empty($appName) || empty($secretKey)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Metered configuration is missing.',
+                'debug' => [
+                    'app_name_present' => !empty($appName),
+                    'secret_key_present' => !empty($secretKey),
+                ],
             ], 500);
         }
 
         /*
-         * Token expiration.
+         * Clean the app name.
          *
-         * Keep the token valid for the duration of this call.
+         * Expected:
+         * chatapp-webrtc
+         *
+         * NOT:
+         * https://chatapp-webrtc.metered.live
+         */
+        $appName = trim($appName);
+
+        /*
+         * Token validity.
          */
         $expirationDate = now()
             ->addHours(2)
             ->toIso8601String();
 
         /*
-         * Generate Metered access token.
+         * Metered token endpoint.
          *
-         * IMPORTANT:
-         * Secret key stays on Laravel server.
+         * Secret key remains ONLY on Laravel server.
          */
+        $tokenUrl =
+            'https://' .
+            $appName .
+            '.metered.live/api/v1/token?secretKey=' .
+            urlencode($secretKey);
+
         try {
             $response = Http::acceptJson()
                 ->timeout(15)
                 ->post(
-                    'https://' . $appName .
-                    '.metered.live/api/v1/token?secretKey=' .
-                    urlencode($secretKey),
+                    $tokenUrl,
                     [
                         'roomName' => $match->metered_room,
                         'expirationDate' => $expirationDate,
@@ -100,7 +139,10 @@ class MeteredController extends Controller
         }
 
         /*
-         * Metered returned an error.
+         * Metered API returned an error.
+         *
+         * Keep status and response for debugging,
+         * but NEVER return our secret key.
          */
         if (!$response->successful()) {
             return response()->json([
@@ -111,13 +153,15 @@ class MeteredController extends Controller
             ], 502);
         }
 
+        /*
+         * Decode Metered response.
+         */
         $meteredData = $response->json();
 
         /*
-         * Metered token.
+         * Metered access token.
          *
-         * Depending on API response, token may be returned
-         * under token or accessToken.
+         * Support both possible response field names.
          */
         $accessToken =
             $meteredData['token']
@@ -128,28 +172,38 @@ class MeteredController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Metered did not return an access token.',
+                'metered_response' => $meteredData,
             ], 502);
         }
 
         /*
-         * Return only information frontend needs.
+         * Determine the other participant.
+         */
+        $matchedUserId =
+            (int) $match->user_one_id === (int) $user->id
+                ? $match->user_two_id
+                : $match->user_one_id;
+
+        /*
+         * Return only frontend-required data.
          *
-         * NEVER return the Metered secret key.
+         * NEVER return:
+         * - Metered Secret Key
+         * - TURN credential
+         * - Laravel environment values
          */
         return response()->json([
             'success' => true,
 
             'match_id' => $match->id,
 
-            'matched_user_id' =>
-                (int) $match->user_one_id === (int) $user->id
-                    ? $match->user_two_id
-                    : $match->user_one_id,
+            'matched_user_id' => $matchedUserId,
 
             'roomName' => $match->metered_room,
 
             'roomURL' =>
-                $appName . '.metered.live/' .
+                $appName .
+                '.metered.live/' .
                 $match->metered_room,
 
             'accessToken' => $accessToken,
