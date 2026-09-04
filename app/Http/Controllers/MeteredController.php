@@ -68,8 +68,8 @@ class MeteredController extends Controller
          *     'secret_key' => env('METERED_SECRET_KEY'),
          * ],
          */
-        $appName = config('services.metered.app_name');
-        $secretKey = config('services.metered.secret_key');
+        $appName = env('METERED_APP_NAME');
+        $secretKey = env('METERED_SECRET_KEY');
 
         /*
          * IMPORTANT:
