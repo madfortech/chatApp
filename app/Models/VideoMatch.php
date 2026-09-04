@@ -11,6 +11,7 @@ class VideoMatch extends Model
         'user_one_id',
         'user_two_id',
         'status',
+        'metered_room',
         'started_at',
         'ended_at',
     ];

@@ -24,6 +24,8 @@ return new class extends Migration
             $table->string('status')
                 ->default('active');
 
+            $table->string('metered_room')->nullable()->after('status');
+    
             $table->timestamp('started_at')
                 ->nullable();
 

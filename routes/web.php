@@ -6,6 +6,7 @@ use App\Events\WebRTCSignal;
 use Illuminate\Http\Request;
 use App\Http\Controllers\VideoMatchController;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\MeteredController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -134,5 +135,15 @@ Route::get('/dashboard/webrtc-log', function () {
     );
 
 })->middleware(['auth', 'verified']);
+
+Route::middleware('auth')->group(function () {
+
+    Route::post(
+        '/video-call/metered-token',
+        [MeteredController::class, 'token']
+    )->name('video-call.metered-token');
+
+});
+
 
 require __DIR__.'/auth.php';
