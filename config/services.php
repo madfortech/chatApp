@@ -37,8 +37,11 @@ return [
 
 
     'metered' => [
+        'app_name' => env('METERED_APP_NAME'),
+        'secret_key' => env('METERED_SECRET_KEY'),
         'turn_username' => env('METERED_TURN_USERNAME'),
         'turn_credential' => env('METERED_TURN_CREDENTIAL'),
     ],
 
+    
 ];
